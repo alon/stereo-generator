@@ -3,33 +3,118 @@
 <head>
 <meta charset="utf-8" />
 <title>stereo tone generator</title>
+<script src="jquery.min.js"></script>
+<link rel="stylesheet" href="jquery-ui.css" />
+<script src="jquery-ui.min.js"></script>
 </head>
 <body>
+<style type="text/css">
+#slider-left, #slider-left .ui-widget-header { background: #FE9749;
+    background: -moz-linear-gradient(top, #ffd2b0, #ffd2b0 42%, #e4ba9b 82%, #e4ba9b);
+    background: -webkit-linear-gradient(top, #ffd2b0, #ffd2b0 42%, #e4ba9b 82%, #e4ba9b);
+}
+#slider-left { border: solid 1px #EFD7C5; }
+#slider-left { height: 22px; box-shadow: -1px 1px 2px #815c41; }
+#slider-left .ui-slider-left-handle { width: 22px; height: 32px; margin-left: -12px; border-radius: 4px;
+    background: -moz-linear-gradient(top, #fbfaf9, #fbfaf9 42%, #eee9e6 62%, #d5cdc6);
+    background: -webkit-linear-gradient(top, #fbfaf9, #fbfaf9 42%, #eee9e6 62%, #d5cdc6);
+    box-shadow: -1px 1px 2px #b18d72;
+}
+#slider-left .ui-slider-left-handle.ui-state-default { border: solid 1px #7c593f; }
+#slider-left .ui-slider-left-handle.ui-state-focus { background: #fff; border: solid 1px #9b704f;
+    box-shadow: -1px 1px 2px #b18d72, inset -2px -2px 3px #fff, inset 2px 2px 3px #fff;
+}
+#slider-left-value { display: inline-block; text-align: center; width: 130px; }
+</style>
+<div id="slider-right" style="margin: 40px 0px 30px 0px"></div>
+<span id="slider-right-value"></span>
+<div id="slider-left" style="margin: 40px 0px 30px 0px"></div>
+<span id="slider-left-value"></span>
 <script>
-var rate = 44100;
+function sliderPosToFreq(sliderPos)
+{
+    //return Math.round(20 * Math.pow(1.0025, sliderPos));
+    return Math.round(20 * Math.pow(1.0025, sliderPos) - 19);
+}
+</script>
+<script>
+var left_freq = 500;
+var right_freq = 1500;
+var left;
+var right;
+var merger;
+var playing = true;
 var ctx = new window.AudioContext();
+
 if (ctx === undefined) {
     console.log('undefined AudioContext, no audio');
-} else {
-    generate(500, 1500);
 }
 
-function generate(left_freq, right_freq)
+function generate()
 {
-    var left = ctx.createOscillator();
-    var right = ctx.createOscillator();
-    left.type = "sine";
-    right.type = "sine";
+    if (left === undefined) {
+        left = ctx.createOscillator();
+        left.type = "sine";
+        left.start();
+    }
+    if (right === undefined) {
+        right = ctx.createOscillator();
+        right.type = "sine";
+        right.start();
+    }
+    if (merger === undefined) {
+        merger = ctx.createChannelMerger(2);
+        left.connect(merger, 0, 0);
+        right.connect(merger, 0, 1);
+        merger.connect(ctx.destination);
+    }
     left.frequency.value = left_freq;
     right.frequency.value = right_freq;
-    var merger = ctx.createChannelMerger(2);
-    left.connect(merger, 0, 0);
-    right.connect(merger, 0, 1);
-    merger.connect(ctx.destination);
-    left.start();
-    right.start();
 }
-generate(1000, 2000);
+$(document).ready(function() {
+    //generate(1000, 2000);
+    var names = ["#slider-left", "#slider-right"];
+    var setters = [
+        function(freq) {
+            left_freq = freq;
+            console.log('set left to ' + freq);
+        },
+        function(freq) {
+            right_freq = freq;
+            console.log('set right to ' + freq);
+        }
+        ];
+    for (var i = 0; i < names.length; ++i) {
+        var f = function(i){
+            var name = names[i];
+            var setter = setters[i];
+            console.log(i);
+            console.log(name);
+            console.log(setter);
+            $(name).slider({
+                orientation: "horizontal",
+                range: "min",
+                min: 0,
+                max: 2770,
+                value: 1238,
+                step: 1,
+                slide: function(event, ui) {
+                    var freq = sliderPosToFreq(ui.value);
+                    $(name + "-value").html(freq + " Hz");
+                    setter(freq);
+                    if (playing) {
+                        generate();
+                    }
+                },
+                stop: function(event, uo) {
+                    // what do I need it for?
+                    //console.log('stop: not implemented');
+                }
+            });
+        };
+        f(i);
+    }
+}());
 </script>
 </body>
 </html>
