@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>stereo tone generator</title>
+</head>
+<body>
+<script>
+var rate = 44100;
+var ctx = new window.AudioContext();
+if (ctx === undefined) {
+    console.log('undefined AudioContext, no audio');
+} else {
+    generate(500, 1500);
+}
+
+function generate(left_freq, right_freq)
+{
+    var left = ctx.createOscillator();
+    var right = ctx.createOscillator();
+    left.type = "sine";
+    right.type = "sine";
+    left.frequency.value = left_freq;
+    right.frequency.value = right_freq;
+    var merger = ctx.createChannelMerger(2);
+    left.connect(merger, 0, 0);
+    right.connect(merger, 0, 1);
+    merger.connect(ctx.destination);
+    left.start();
+    right.start();
+}
+generate(1000, 2000);
+</script>
+</body>
+</html>
